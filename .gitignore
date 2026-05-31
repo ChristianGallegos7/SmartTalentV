@@ -1,0 +1,20 @@
+CLAUDE.md
+
+# Variables de entorno — nunca commitear
+.env
+.env.*
+.env copy
+*/.env
+*/.env.*
+*/.env copy
+
+# Dependencias
+node_modules/
+backend/node_modules/
+fronted/node_modules/
+
+# Build
+fronted/dist/
+
+# Uploads locales
+backend/uploads/
