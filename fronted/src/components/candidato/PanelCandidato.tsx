@@ -402,52 +402,76 @@ function VacancyCard({
   nueva: boolean;
   onAbrir: () => void;
 }) {
+  const salario =
+    vacante.salario_min && vacante.salario_max
+      ? `$${vacante.salario_min.toLocaleString()} – $${vacante.salario_max.toLocaleString()} USD`
+      : vacante.salario_min
+      ? `Desde $${vacante.salario_min.toLocaleString()} USD`
+      : vacante.salario_max
+      ? `Hasta $${vacante.salario_max.toLocaleString()} USD`
+      : null;
+
+  const fechaFormateada = vacante.fecha_publicacion
+    ? new Date(vacante.fecha_publicacion + "T00:00:00").toLocaleDateString("es-MX", { day: "numeric", month: "short", year: "numeric" })
+    : null;
+
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 p-5 flex justify-between items-start shadow-sm">
-      <div className="flex-1 pr-4">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 flex items-center justify-center rounded-md bg-green-50 text-green-600 font-bold">
-            JS
+    <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm hover:shadow-md transition-shadow">
+      <div className="flex justify-between items-start gap-4">
+        <div className="flex-1">
+          <div className="flex items-center gap-2 mb-1">
+            <h3 className="font-semibold text-gray-900 text-base">{vacante.titulo}</h3>
+            {nueva && (
+              <span className="text-xs bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full font-medium">
+                Nueva
+              </span>
+            )}
           </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h3 className="font-semibold text-gray-900">{vacante.titulo}</h3>
-              {nueva && (
-                <span className="text-xs bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full">
-                  Nuevo
+
+          {/* Meta: modalidad, ubicación, fecha */}
+          <div className="flex flex-wrap items-center gap-3 text-xs text-gray-400 mb-3">
+            {vacante.modalidad && (
+              <span className={`px-2 py-0.5 rounded-full font-medium ${
+                vacante.modalidad === "Remoto" ? "bg-green-50 text-green-600" :
+                vacante.modalidad === "Híbrido" ? "bg-purple-50 text-purple-600" :
+                "bg-orange-50 text-orange-600"
+              }`}>
+                {vacante.modalidad}
+              </span>
+            )}
+            {vacante.ubicacion && <span>📍 {vacante.ubicacion}</span>}
+            {fechaFormateada && <span>🗓 {fechaFormateada}</span>}
+          </div>
+
+          <p className="text-sm text-gray-500 line-clamp-2">{vacante.descripcion}</p>
+
+          {skills.length > 0 && (
+            <div className="flex flex-wrap gap-1.5 mt-3">
+              {skills.map((h) => (
+                <span key={h.habilidad_id} className="px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded-lg">
+                  {h.nombre}
                 </span>
-              )}
+              ))}
             </div>
-            <p className="text-sm text-gray-500 mt-1">{vacante.descripcion}</p>
-          </div>
+          )}
         </div>
 
-        {skills.length > 0 && (
-          <div className="flex flex-wrap gap-2 mt-3">
-            {skills.map((h) => (
-              <span
-                key={h.habilidad_id}
-                className="px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded-lg"
-              >
-                {h.nombre}
-              </span>
-            ))}
-          </div>
-        )}
-      </div>
-
-      <div className="shrink-0 ml-4 flex flex-col items-end gap-3">
-        <button
-          onClick={onAbrir}
-          disabled={postulado}
-          className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${
-            postulado
-              ? "bg-green-50 text-green-600 cursor-default"
-              : "bg-blue-600 text-white hover:bg-blue-700"
-          }`}
-        >
-          {postulado ? "Postulado" : "Postular"}
-        </button>
+        <div className="shrink-0 flex flex-col items-end gap-3">
+          <button
+            onClick={onAbrir}
+            disabled={postulado}
+            className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${
+              postulado
+                ? "bg-green-50 text-green-600 cursor-default"
+                : "bg-blue-600 text-white hover:bg-blue-700"
+            }`}
+          >
+            {postulado ? "Postulado" : "Postular"}
+          </button>
+          {salario && (
+            <span className="text-sm font-semibold text-gray-800">{salario}</span>
+          )}
+        </div>
       </div>
     </div>
   );

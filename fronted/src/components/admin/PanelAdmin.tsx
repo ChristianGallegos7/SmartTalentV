@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import * as XLSX from "xlsx";
 import { useNavigate } from "react-router-dom";
 import { logoutUsuario } from "../../api/auth";
 import { actualizarHabilidad, crearHabilidad, eliminarHabilidad, listarHabilidades } from "../../api/habilidades";
@@ -38,7 +39,14 @@ export default function PanelAdmin() {
   >([]);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState("");
-  const [formulario, setFormulario] = useState({ titulo: "", descripcion: "" });
+  const [formulario, setFormulario] = useState({
+    titulo: "",
+    descripcion: "",
+    salario_min: "",
+    salario_max: "",
+    modalidad: "" as "" | "Remoto" | "Presencial" | "Híbrido",
+    ubicacion: "",
+  });
   const [habilidadesSeleccionadas, setHabilidadesSeleccionadas] = useState<
     number[]
   >([]);
@@ -85,13 +93,17 @@ export default function PanelAdmin() {
       const nuevaVacante = await crearVacante({
         titulo: formulario.titulo,
         descripcion: formulario.descripcion,
+        salario_min: formulario.salario_min ? Number(formulario.salario_min) : undefined,
+        salario_max: formulario.salario_max ? Number(formulario.salario_max) : undefined,
+        modalidad: formulario.modalidad || undefined,
+        ubicacion: formulario.ubicacion || undefined,
       });
       await Promise.all(
         habilidadesSeleccionadas.map((habilidad_id) =>
           asociarHabilidadVacante(nuevaVacante.vacante_id, habilidad_id),
         ),
       );
-      setFormulario({ titulo: "", descripcion: "" });
+      setFormulario({ titulo: "", descripcion: "", salario_min: "", salario_max: "", modalidad: "", ubicacion: "" });
       setHabilidadesSeleccionadas([]);
       setMostrarFormulario(false);
       await cargarDatos();
@@ -192,6 +204,38 @@ export default function PanelAdmin() {
     setFormTec({ nombre: "", categoria: "" });
   }
 
+  function exportarExcel(grupo: GrupoVacante) {
+    const vacante = vacantes.find((v) => v.vacante_id === grupo.vacante_id);
+    const skillsVacante = habilidadesDeVacante(grupo.vacante_id).map((h) => h.nombre).join(", ");
+
+    const infoVacante: (string | number)[][] = [
+      [`Vacante: ${grupo.titulo}`],
+    ];
+    if (vacante?.modalidad || vacante?.ubicacion) {
+      infoVacante.push([`${vacante?.modalidad ?? ""}${vacante?.ubicacion ? " — " + vacante.ubicacion : ""}`.trim()]);
+    }
+    infoVacante.push([]); // fila vacía separadora
+
+    const encabezados = [["Candidato", "Correo", "Match (%)", "Tecnologías requeridas", "CV"]];
+
+    const filas = grupo.postulaciones.map((p) => [
+      p.candidato_nombre ?? `Usuario #${p.usuario_id}`,
+      p.candidato_correo ?? "—",
+      p.match_score != null ? Number(p.match_score) : "Sin analizar",
+      skillsVacante || "—",
+      p.resume_url ?? "—",
+    ]);
+
+    const hoja = XLSX.utils.aoa_to_sheet([...infoVacante, ...encabezados, ...filas]);
+    hoja["!cols"] = [{ wch: 28 }, { wch: 32 }, { wch: 14 }, { wch: 40 }, { wch: 60 }];
+
+    const libro = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(libro, hoja, "Postulaciones");
+
+    const nombreArchivo = `Postulaciones_${grupo.titulo.replace(/\s+/g, "_")}.xlsx`;
+    XLSX.writeFile(libro, nombreArchivo);
+  }
+
   function cerrarSesion() {
     logoutUsuario();
     navegar("/login");
@@ -272,30 +316,67 @@ export default function PanelAdmin() {
                     </h3>
                     <input
                       type="text"
-                      placeholder="Título"
+                      placeholder="Título del puesto"
                       required
                       value={formulario.titulo}
-                      onChange={(e) =>
-                        setFormulario((prev) => ({
-                          ...prev,
-                          titulo: e.target.value,
-                        }))
-                      }
+                      onChange={(e) => setFormulario((prev) => ({ ...prev, titulo: e.target.value }))}
                       className="w-full px-4 py-3 bg-gray-50 rounded-xl outline-none focus:ring-2 focus:ring-blue-500"
                     />
                     <textarea
-                      placeholder="Descripción"
+                      placeholder="Descripción del puesto"
                       required
                       value={formulario.descripcion}
-                      onChange={(e) =>
-                        setFormulario((prev) => ({
-                          ...prev,
-                          descripcion: e.target.value,
-                        }))
-                      }
+                      onChange={(e) => setFormulario((prev) => ({ ...prev, descripcion: e.target.value }))}
                       className="w-full px-4 py-3 bg-gray-50 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 resize-none"
                       rows={3}
                     />
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="text-xs text-gray-500 font-medium block mb-1">Salario mínimo (USD)</label>
+                        <input
+                          type="number"
+                          placeholder="Ej: 1500"
+                          value={formulario.salario_min}
+                          onChange={(e) => setFormulario((prev) => ({ ...prev, salario_min: e.target.value }))}
+                          className="w-full px-4 py-3 bg-gray-50 rounded-xl outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-xs text-gray-500 font-medium block mb-1">Salario máximo (USD)</label>
+                        <input
+                          type="number"
+                          placeholder="Ej: 2500"
+                          value={formulario.salario_max}
+                          onChange={(e) => setFormulario((prev) => ({ ...prev, salario_max: e.target.value }))}
+                          className="w-full px-4 py-3 bg-gray-50 rounded-xl outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="text-xs text-gray-500 font-medium block mb-1">Modalidad</label>
+                        <select
+                          value={formulario.modalidad}
+                          onChange={(e) => setFormulario((prev) => ({ ...prev, modalidad: e.target.value as typeof formulario.modalidad }))}
+                          className="w-full px-4 py-3 bg-gray-50 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                        >
+                          <option value="">Sin especificar</option>
+                          <option value="Remoto">Remoto</option>
+                          <option value="Presencial">Presencial</option>
+                          <option value="Híbrido">Híbrido</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="text-xs text-gray-500 font-medium block mb-1">Ubicación</label>
+                        <input
+                          type="text"
+                          placeholder="Ej: Ciudad de México"
+                          value={formulario.ubicacion}
+                          onChange={(e) => setFormulario((prev) => ({ ...prev, ubicacion: e.target.value }))}
+                          className="w-full px-4 py-3 bg-gray-50 rounded-xl outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                      </div>
+                    </div>
 
                     <div>
                       <p className="text-sm font-medium text-gray-700 mb-2">
@@ -443,9 +524,17 @@ export default function PanelAdmin() {
                                   {grupo.postulaciones.length} candidato{grupo.postulaciones.length !== 1 ? "s" : ""}
                                 </span>
                               </div>
-                              <span className="text-gray-400 text-sm">
-                                {expandido ? "▲" : "▼"}
-                              </span>
+                              <div className="flex items-center gap-3">
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); exportarExcel(grupo); }}
+                                  className="text-xs font-medium px-3 py-1.5 rounded-lg bg-green-600 text-white hover:bg-green-700 transition-all"
+                                >
+                                  Exportar Excel
+                                </button>
+                                <span className="text-gray-400 text-sm">
+                                  {expandido ? "▲" : "▼"}
+                                </span>
+                              </div>
                             </button>
 
                             {expandido && (
