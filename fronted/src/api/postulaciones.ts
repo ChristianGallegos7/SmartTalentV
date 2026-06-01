@@ -14,6 +14,22 @@ export async function listarPostulaciones(): Promise<Postulacion[]> {
   return respuesta.json();
 }
 
+export async function chatVacante(
+  vacante_id: number,
+  pregunta: string,
+  historial: { role: string; content: { text: string }[] }[]
+): Promise<string> {
+  const token = obtenerToken();
+  const respuesta = await fetch(`${URL_API}/api/postulaciones/vacante/${vacante_id}/chat`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ pregunta, historial }),
+  });
+  const data = await respuesta.json();
+  if (!respuesta.ok) throw new Error(data.error ?? "Error en el chat");
+  return data.respuesta;
+}
+
 export async function analizarMatch(postulacion_id: number): Promise<{
   postulacion_id: number;
   match_score: number;

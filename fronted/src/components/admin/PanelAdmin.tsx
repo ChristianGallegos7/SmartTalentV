@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
 import * as XLSX from "xlsx";
+import ChatVacante from "./ChatVacante";
 import { useNavigate } from "react-router-dom";
 import { logoutUsuario } from "../../api/auth";
 import { actualizarHabilidad, crearHabilidad, eliminarHabilidad, listarHabilidades } from "../../api/habilidades";
-import { analizarMatch, listarPostulaciones } from "../../api/postulaciones";
+import { analizarMatch, chatVacante, listarPostulaciones } from "../../api/postulaciones";
 import { obtenerSesion } from "../../api/session";
 import type { VacanteHabilidad } from "../../api/vacanteHabilidades";
 import {
@@ -606,6 +607,7 @@ export default function PanelAdmin() {
                                     })}
                                   </tbody>
                                 </table>
+                                <ChatVacante vacanteId={grupo.vacante_id} vacanteTitulo={grupo.titulo} />
                               </div>
                             )}
                           </div>

@@ -3,6 +3,7 @@ const ListarPostulaciones = require("../../Aplicacion/ListarPostulacion");
 const ActualizarPostulacion = require("../../Aplicacion/ActualizarPostulacion");
 const EliminarPostulacion = require("../../Aplicacion/EliminarPostulacion");
 const AnalizarMatch = require("../../Aplicacion/AnalizarMatch");
+const ChatVacante = require("../../Aplicacion/ChatVacante");
 
 const PostulacionRepository = require("../Orm/PostulacionRepositorioSequelize");
 const { uploadToS3 } = require("../../../../services/s3");
@@ -54,6 +55,18 @@ exports.eliminar = async (req, res) => {
     const caso = new EliminarPostulacion(repo);
     await caso.ejecutar(req.params.id);
     res.json({ mensaje: "Postulación eliminada" });
+  } catch (e) {
+    res.status(e.statusCode || 500).json({ error: e.message });
+  }
+};
+
+exports.chat = async (req, res) => {
+  try {
+    const { pregunta, historial = [] } = req.body;
+    if (!pregunta) return res.status(400).json({ error: "La pregunta es obligatoria" });
+    const caso = new ChatVacante();
+    const respuesta = await caso.ejecutar(req.params.vacanteId, historial, pregunta);
+    res.json({ respuesta });
   } catch (e) {
     res.status(e.statusCode || 500).json({ error: e.message });
   }
